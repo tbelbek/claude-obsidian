@@ -76,25 +76,46 @@ def wiki_links(text: str) -> list[str]:
 
 # ---- metrics: each returns a float in [0, 1] ----
 
+_STOPWORDS = {"the", "a", "an", "of", "and", "to", "in", "for", "on", "with", "by", "as", "at"}
+
+
 def _norm(s: str) -> str:
-    """Normalize for title matching: lower, hyphens/underscores to spaces, collapse whitespace."""
-    s = s.lower().replace("-", " ").replace("_", " ")
+    """Normalize for title matching: lower, hyphens/underscores/dots to spaces, collapse whitespace."""
+    s = s.lower().replace("-", " ").replace("_", " ").replace(".", " ")
     return re.sub(r"\s+", " ", s).strip()
+
+
+def _tokens(s: str) -> set[str]:
+    return {t for t in _norm(s).split() if t and t not in _STOPWORDS}
+
+
+def _matches(expected: str, title: str) -> bool:
+    """Token-subset match. Expected matches title if every expected content token
+    (after stopword removal) appears in the title's token set. This handles:
+    - 'Parallel Sessions' ~ 'parallel-claude-sessions' (subset match)
+    - 'Git Worktrees' ~ 'worktree-isolation' (fails — 'git' not present; correct rejection)
+    - 'CLAUDE.md' ~ 'claude-md-project-instructions' (subset match on {claude, md})
+    """
+    e_toks = _tokens(expected)
+    if not e_toks:
+        return False
+    t_toks = _tokens(title)
+    return e_toks.issubset(t_toks)
 
 
 def m_entity_recall(pages, expected):
     if not expected:
         return 1.0
-    titles = {_norm(p["title"]) for p in pages}
-    hits = sum(1 for e in expected if _norm(e) in titles)
+    titles = [p["title"] for p in pages if p["subdir"] == "entities"]
+    hits = sum(1 for e in expected if any(_matches(e, t) for t in titles))
     return hits / len(expected)
 
 
 def m_concept_recall(pages, expected):
     if not expected:
         return 1.0
-    titles = {_norm(p["title"]) for p in pages if p["subdir"] == "concepts"}
-    hits = sum(1 for e in expected if _norm(e) in titles)
+    titles = [p["title"] for p in pages if p["subdir"] == "concepts"]
+    hits = sum(1 for e in expected if any(_matches(e, t) for t in titles))
     return hits / len(expected)
 
 

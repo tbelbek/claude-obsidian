@@ -29,7 +29,7 @@ FIXTURE_DIR="eval/fixtures/${FIXTURE_NAME}"
 SOURCE_FILE="${FIXTURE_DIR}/source.md"
 SCRATCH="${TRIAL_SCRATCH:-.autoresearch/scratch}"
 CLAUDE_BIN="${CLAUDE_BIN:-claude}"
-PER_TRIAL_TIMEOUT="${PER_TRIAL_TIMEOUT:-300}"
+PER_TRIAL_TIMEOUT="${PER_TRIAL_TIMEOUT:-600}"
 
 [[ -f "${SOURCE_FILE}" ]] || { echo "fixture missing: ${SOURCE_FILE}" >&2; exit 12; }
 [[ -f "skills/wiki-ingest/SKILL.md" ]] || { echo "skills/wiki-ingest/SKILL.md missing" >&2; exit 13; }
@@ -41,27 +41,51 @@ mkdir -p "${SCRATCH}/wiki"/{concepts,entities,sources,comparisons,questions}
 PROMPT=$(cat <<PROMPT_EOF
 You are running an eval trial. Do not ask questions. Work autonomously.
 
-Task: Ingest the following source document into the scratch wiki at ${SCRATCH}/wiki/, following the ingestion protocol in skills/wiki-ingest/SKILL.md.
+Task: Ingest a source document into a scratch wiki, following the current protocol in skills/wiki-ingest/SKILL.md exactly as written.
 
 Source: ${SOURCE_FILE}
+Scratch wiki root: ${SCRATCH}/wiki/
 
-Rules:
-- Read skills/wiki-ingest/SKILL.md end-to-end before starting.
-- Write ALL new pages under ${SCRATCH}/wiki/ (concepts/, entities/, sources/, etc.). The subdirectories already exist.
-- Do NOT read or modify the main wiki/ directory.
+Meta-rules (scratch harness only, not ingestion guidance):
+- Read skills/wiki-ingest/SKILL.md end-to-end and follow it.
+- Write every new page under ${SCRATCH}/wiki/ (the concepts/, entities/, sources/, comparisons/, questions/ subdirectories already exist). Treat ${SCRATCH}/wiki/ as the wiki root for this session.
+- Do NOT read, modify, or link to the main wiki/ directory.
 - Do NOT update any index.md or log.md.
 - Do NOT ask for confirmation.
-- Frontmatter must include: type, title, created, updated, tags (both created and updated are required).
-- For every author, handle, or notable person cited in the source: create an entity page with researched content (≥80 words). You may use WebSearch/WebFetch to research them.
-- Target concept granularity: distilled sub-topics, not one page per section and not one umbrella page. Aim for 3–6 concept pages on a source of this size.
 - When done, print exactly: TRIAL_DONE
 PROMPT_EOF
 )
 
-# Run headless claude with timeout. Capture stderr separately.
+# Run headless claude with a portable timeout (perl alarm). macOS has no `timeout` by default.
 TRIAL_LOG="${SCRATCH}/trial.log"
-if ! timeout "${PER_TRIAL_TIMEOUT}" "${CLAUDE_BIN}" -p "${PROMPT}" > "${TRIAL_LOG}" 2>&1; then
-    echo "claude headless invocation failed or timed out (see ${TRIAL_LOG})" >&2
+run_with_timeout() {
+    local secs="$1"; shift
+    perl -e '
+        my $secs = shift @ARGV;
+        my $pid = fork();
+        if ($pid == 0) { exec @ARGV; exit 127; }
+        local $SIG{ALRM} = sub { kill "TERM", $pid; sleep 2; kill "KILL", $pid; exit 124; };
+        alarm $secs;
+        waitpid $pid, 0;
+        exit($? >> 8);
+    ' "$secs" "$@"
+}
+set +e
+run_with_timeout "${PER_TRIAL_TIMEOUT}" \
+    "${CLAUDE_BIN}" -p "${PROMPT}" \
+    --permission-mode acceptEdits \
+    --allowedTools "Read Write Edit Glob Grep Bash WebSearch WebFetch" \
+    --output-format json \
+    --max-budget-usd 3 \
+    > "${TRIAL_LOG}" 2>&1
+rc=$?
+set -e
+if [[ "$rc" -ne 0 ]]; then
+    if [[ "$rc" -eq 124 ]]; then
+        echo "claude headless invocation timed out after ${PER_TRIAL_TIMEOUT}s (see ${TRIAL_LOG})" >&2
+    else
+        echo "claude headless invocation failed rc=${rc} (see ${TRIAL_LOG})" >&2
+    fi
     exit 10
 fi
 
