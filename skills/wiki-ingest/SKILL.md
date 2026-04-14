@@ -10,6 +10,8 @@ Read the source. Write the wiki. Cross-reference everything. A single source typ
 
 Every new wiki page MUST have these five frontmatter fields: `type`, `title`, `created` (today's date), `updated` (today's date), `tags`. Both `created` and `updated` are required on creation.
 
+Every wikilink target MUST exactly match the destination page's `title` frontmatter field. Never link by filename slug, abbreviation, or paraphrase: `[[Context Window Management]]` works, `[[context-window-management]]` or `[[CWM]]` does not. Inconsistent link text breaks cross-references and orphans pages.
+
 **Syntax standard**: Write all Obsidian Markdown using proper Obsidian Flavored Markdown. Wikilinks as `[[Note Name]]`, callouts as `> [!type] Title`, embeds as `![[file]]`, properties as YAML frontmatter. If the kepano/obsidian-skills plugin is installed, prefer its canonical obsidian-markdown skill for Obsidian syntax reference. Otherwise, follow the guidance in this skill.
 
 ---
@@ -107,7 +109,7 @@ Steps:
 2. **Discuss** key takeaways with the user. Ask: "What should I emphasize? How granular?" Skip this if the user says "just ingest it."
 3. **Create** source summary in `wiki/sources/`. Use the source frontmatter schema from `references/frontmatter.md`.
 4. **Create or update** entity pages for every person, org, product, and repo mentioned. One page per entity.
-5. **Create or update** concept pages for significant ideas and frameworks.
+5. **Create or update** concept pages for significant ideas and frameworks. Capture BOTH levels: (a) one umbrella concept per source named after the source's main subject or framework (e.g. "Claude Code Best Practices"), plus (b) one concept per major capability area that groups related sub-topics (e.g. "Context Window Management" grouping "Clear Command", "Feedback Loop"). Do not stop at granular sub-topics — the reader should be able to find the umbrella concept for any major theme in the source.
 6. **Update** relevant domain page(s) and their `_index.md` sub-indexes.
 7. **Update** `wiki/overview.md` if the big picture changed.
 8. **Update** `wiki/index.md`. Add entries for all new pages.
