@@ -8,6 +8,8 @@ allowed-tools: Read Write Edit Glob Grep Bash WebFetch
 
 Read the source. Write the wiki. Cross-reference everything. A single source typically touches 8-15 wiki pages.
 
+Every new wiki page MUST have these five frontmatter fields: `type`, `title`, `created` (today's date), `updated` (today's date), `tags`. Both `created` and `updated` are required on creation.
+
 **Syntax standard**: Write all Obsidian Markdown using proper Obsidian Flavored Markdown. Wikilinks as `[[Note Name]]`, callouts as `> [!type] Title`, embeds as `![[file]]`, properties as YAML frontmatter. If the kepano/obsidian-skills plugin is installed, prefer its canonical obsidian-markdown skill for Obsidian syntax reference. Otherwise, follow the guidance in this skill.
 
 ---
