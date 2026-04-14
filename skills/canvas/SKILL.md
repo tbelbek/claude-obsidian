@@ -154,7 +154,7 @@ Same as add image. Obsidian renders PDFs natively as file nodes.
 }
 ```
 
-Valid colors: `"1"`=red `"2"`=orange `"3"`=yellow `"4"`=green `"5"`=cyan `"6"`=purple
+Valid canvas group colors: `"1"`=red `"2"`=orange `"3"`=yellow `"4"`=green `"5"`=cyan `"6"`=purple. Note: canvas color palette differs from the CSS snippet palette referenced by `wiki-lint` (`1`=blue there) — these are separate systems.
 
 Write and report.
 

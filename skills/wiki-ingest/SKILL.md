@@ -103,18 +103,30 @@ Use cases: whiteboard photos, screenshots, diagrams, infographics, document scan
 
 Trigger: user drops a file into `.raw/` or pastes content.
 
-Steps:
+### Core principle: compounding over duplication
+
+The wiki is a persistent, compounding artifact. Every ingest must **prefer extending existing pages over creating new ones**. When a new source mentions an entity, concept, or theme that already has a page, extend that page with the new information and add the source to its `sources:` frontmatter list. Only create a new page when no existing page covers the subject.
+
+A good ingest leaves the wiki denser, not wider.
+
+### Steps
 
 1. **Read** the source completely. Do not skim.
-2. **Discuss** key takeaways with the user. Ask: "What should I emphasize? How granular?" Skip this if the user says "just ingest it."
-3. **Create** source summary in `wiki/sources/`. Use the source frontmatter schema from `references/frontmatter.md`.
-4. **Create or update** entity pages for every person, org, product, and repo mentioned. One page per entity.
-5. **Create or update** concept pages for significant ideas and frameworks. Capture BOTH levels: (a) one umbrella concept per source named after the source's main subject or framework (e.g. "Claude Code Best Practices"), plus (b) one concept per major capability area that groups related sub-topics (e.g. "Context Window Management" grouping "Clear Command", "Feedback Loop"). Do not stop at granular sub-topics — the reader should be able to find the umbrella concept for any major theme in the source.
-6. **Update** relevant domain page(s) and their `_index.md` sub-indexes.
-7. **Update** `wiki/overview.md` if the big picture changed.
-8. **Update** `wiki/index.md`. Add entries for all new pages.
-9. **Update** `wiki/hot.md` with this ingest's context.
-10. **Append** to `wiki/log.md` (new entries at the TOP):
+2. **Discuss** key takeaways with the user. Ask: "What should I emphasize? How granular?" Skip this step when running non-interactively (batch mode, headless trials, scheduled jobs, or when the user says "just ingest it").
+3. **Survey existing coverage.** Read `wiki/hot.md` and `wiki/index.md`. For every entity and concept mentioned in the source, check whether a page already exists (scan index, then `glob wiki/entities/` and `wiki/concepts/`). Produce a mental map: `{entity/concept → exists? → page path}`. This survey is mandatory before any writes.
+4. **Create** source summary in `wiki/sources/`. Use the full frontmatter schema from `skills/wiki/references/frontmatter.md` — universal fields plus source-specific (`source_type`, `author`, `date_published`, `url`, `confidence`, `key_claims`). The source summary must link to every entity and concept page this source touches (existing or to-be-created).
+5. **Extend or create entity pages** for every person, org, product, and repo mentioned. One page per entity, never duplicates.
+   - If the entity page **exists**: add a new `## From [[Source Title]]` section with the new information; append the source to the page's `sources:` frontmatter list; bump `updated`.
+   - If it **does not exist**: create it with the canonical entity frontmatter (including `entity_type`, `role`, `first_mentioned`).
+6. **Extend or create concept pages** for significant ideas and frameworks. Capture BOTH levels:
+   (a) one umbrella concept per source named after the source's main subject or framework (e.g. "Claude Code Best Practices");
+   (b) one concept per major capability area that groups related sub-topics (e.g. "Context Window Management" grouping "Clear Command", "Feedback Loop").
+   The reader should be able to find the umbrella concept for any major theme in the source. Apply the same extend-over-create rule from step 5: existing concepts get new sections and the source added, not duplicate pages.
+7. **Update sub-indexes** (`wiki/entities/_index.md`, `wiki/concepts/_index.md`, `wiki/sources/_index.md`) with new or renamed entries. If the vault uses `wiki/domains/`, update the relevant domain page too — otherwise tags on each page provide domain structure.
+8. **Update** `wiki/overview.md` if the big picture changed.
+9. **Update** `wiki/index.md`. Add entries for all new pages.
+10. **Update** `wiki/hot.md` with this ingest's context.
+11. **Append** to `wiki/log.md` (new entries at the TOP):
     ```markdown
     ## [YYYY-MM-DD] ingest | Source Title
     - Source: `.raw/articles/filename.md`
@@ -123,7 +135,8 @@ Steps:
     - Pages updated: [[Page 3]], [[Page 4]]
     - Key insight: One sentence on what is new.
     ```
-11. **Check for contradictions.** If new info conflicts with existing pages, add `> [!contradiction]` callouts on both pages.
+12. **Check for contradictions.** If new info conflicts with existing pages, add `> [!contradiction]` callouts on both pages (see Contradictions section).
+13. **Verify cross-linking.** Every page created or updated in this ingest must have at least one inbound wikilink from another page. Source summary links out to entities and concepts; entity and concept pages link back to the source summary and to each other where related. Pages with zero inbound links are malformed — fix before finishing.
 
 ---
 
@@ -145,14 +158,13 @@ Batch ingest is less interactive. For 30+ sources, expect significant processing
 
 ## Context Window Discipline
 
-Token budget matters. Follow these rules during ingest:
+Token budget matters. Distinguish **read budget** from **write/touch budget**:
 
-- Read `wiki/hot.md` first. If it contains the relevant context, don't re-read full pages.
-- Read `wiki/index.md` to find existing pages before creating new ones.
-- Read only 3-5 existing pages per ingest. If you need 10+, you are reading too broadly.
-- Use PATCH for surgical edits. Never re-read an entire file just to update one field.
-- Keep wiki pages short. 100-300 lines max. If a page grows beyond 300 lines, split it.
-- Use search (`/search/simple/`) to find specific content without reading full pages.
+- **Reads** (fully read 3–5 pages per ingest). Start with `wiki/hot.md`, then `wiki/index.md`, then the handful of pages directly relevant to this source. Use Grep to scan more pages without fully reading them.
+- **Touches** (write or small-patch 8–15 pages per ingest). Source summary + several entity/concept pages + sub-indexes + log + hot cache. Touches do not require full re-reads — Edit on specific sections, Write only for new pages.
+- Use PATCH / surgical Edit for existing pages. Never re-read an entire file just to update one field.
+- Keep wiki pages short. 100–300 lines max. If a page grows beyond 300 lines, split it.
+- If a page feels like it needs a full re-read before editing, your mental model of it is stale — Grep for the specific section first.
 
 ---
 

@@ -23,7 +23,7 @@ Work through these in order:
 3. **Stale claims**. Assertions on older pages that newer sources have contradicted or updated.
 4. **Missing pages**. Concepts or entities mentioned in multiple pages but lacking their own page.
 5. **Missing cross-references**. Entities mentioned in a page but not linked.
-6. **Frontmatter gaps**. Pages missing required fields (type, status, created, updated, tags).
+6. **Frontmatter gaps**. Pages missing required fields. Canonical schema: `skills/wiki/references/frontmatter.md`. Universal required fields: `type`, `title`, `created`, `updated`, `tags`, `status`.
 7. **Empty sections**. Headings with no content underneath.
 8. **Stale index entries**. Items in `wiki/index.md` pointing to renamed or deleted pages.
 
@@ -98,9 +98,11 @@ During lint, flag pages that violate the style guide:
 
 ---
 
-## Dataview Dashboard
+## Dashboard
 
-Create or update `wiki/meta/dashboard.md` with these queries:
+The primary dashboard lives at `wiki/meta/dashboard.base` (Obsidian Bases syntax). See `skills/obsidian-bases/SKILL.md` for format. Update it during lint to reflect any naming or structural changes.
+
+If the vault still uses a legacy `wiki/meta/dashboard.md` (Dataview), keep the queries below working until it is migrated:
 
 ````markdown
 ---

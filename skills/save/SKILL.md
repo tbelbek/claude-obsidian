@@ -22,15 +22,17 @@ The wiki compounds. Save often.
 
 Determine the best type from the conversation content:
 
+Types match the canonical schema (`skills/wiki/references/frontmatter.md`). Folder = `type` (never diverge).
+
 | Type | Folder | Use when |
 |------|--------|---------|
-| synthesis | wiki/questions/ | Multi-step analysis, comparison, or answer to a specific question |
+| question | wiki/questions/ | Multi-step analysis, comparison, or answer to a specific question (whether synthesized in-chat or prompted) |
 | concept | wiki/concepts/ | Explaining or defining an idea, pattern, or framework |
 | source | wiki/sources/ | Summary of external material discussed in the session |
-| decision | wiki/meta/ | Architectural, project, or strategic decision that was made |
-| session | wiki/meta/ | Full session summary: captures everything discussed |
+| comparison | wiki/comparisons/ | Side-by-side analysis of two or more things |
+| meta | wiki/meta/ | Decisions, session summaries, dashboards, lint reports |
 
-If the user specifies a type, use that. If not, pick the best fit based on the content. When in doubt, use `synthesis`.
+If the user specifies a type, use that. If not, pick the best fit. When in doubt, use `question`. Long-form synthesis answers are still `type: question` — "synthesis" is a style, not a type.
 
 ---
 
@@ -57,9 +59,11 @@ If the user specifies a type, use that. If not, pick the best fit based on the c
 
 ## Frontmatter Template
 
+Minimum universal fields (match `skills/wiki/references/frontmatter.md`):
+
 ```yaml
 ---
-type: <synthesis|concept|source|decision|session>
+type: <question|concept|source|comparison|meta>
 title: "Note Title"
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
@@ -69,21 +73,15 @@ status: developing
 related:
   - "[[Any Wiki Page Mentioned]]"
 sources:
-  - "[[.raw/source-if-applicable.md]]"
+  - ".raw/articles/source-if-applicable.md"
 ---
 ```
 
-For `question` type, add:
-```yaml
-question: "The original query as asked."
-answer_quality: solid
-```
+Note: `sources` holds path strings, not wikilinks. Files under `.raw/` are not linkable via `[[...]]`.
 
-For `decision` type, add:
-```yaml
-decision_date: YYYY-MM-DD
-status: active
-```
+For `type: question`, add the question-specific fields from the canonical schema (`question`, `answer_quality: draft|solid|definitive`).
+
+For meta pages, add `meta_type: decision|session|dashboard|lint-report` plus any type-specific fields (e.g. `decision_date` for decisions).
 
 ---
 

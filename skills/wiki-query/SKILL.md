@@ -99,15 +99,18 @@ Scan the section headers first to determine which sections to read.
 
 ---
 
-## Domain Sub-Index Format
+## Sub-Index Format
 
-Each domain folder has a `_index.md` for focused lookups:
+Each category folder has a `_index.md` for scoped lookups (`wiki/entities/_index.md`, `wiki/concepts/_index.md`, `wiki/sources/_index.md`). If the vault uses `wiki/domains/`, each domain folder also has one.
 
 ```markdown
 ---
 type: meta
 title: "Entities Index"
+created: YYYY-MM-DD
 updated: YYYY-MM-DD
+tags: [meta, index]
+status: evergreen
 ---
 # Entities
 
@@ -121,7 +124,7 @@ updated: YYYY-MM-DD
 - [[Product Name]]: category
 ```
 
-Use sub-indexes when the question is scoped to one domain. Avoid reading the full master index for narrow queries.
+Use sub-indexes when the question is scoped to one category. Avoid reading the full master index for narrow queries.
 
 ---
 

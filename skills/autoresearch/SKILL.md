@@ -55,7 +55,7 @@ Max rounds: 3 (as set in program.md). Stop when depth is reached or max rounds h
 After research is complete, create these pages:
 
 **wiki/sources/**. One page per major reference found
-- Use source frontmatter (type, source_type, author, date_published, url, confidence, key_claims)
+- Use source frontmatter per `skills/wiki/references/frontmatter.md` (universal fields + `source_type`, `author`, `date_published`, `url`, `confidence`, `key_claims`)
 - Body: summary of the source, what it contributes to the topic
 
 **wiki/concepts/**. One page per significant concept extracted
@@ -76,7 +76,7 @@ After research is complete, create these pages:
 
 ```markdown
 ---
-type: synthesis
+type: question
 title: "Research: [Topic]"
 created: YYYY-MM-DD
 updated: YYYY-MM-DD

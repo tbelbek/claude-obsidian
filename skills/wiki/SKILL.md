@@ -40,15 +40,17 @@ wiki/
 ├── hot.md              # hot cache: recent context summary (~500 words)
 ├── overview.md         # executive summary of the whole wiki
 ├── sources/            # one summary page per raw source
+│   └── _index.md
 ├── entities/           # people, orgs, products, repos
 │   └── _index.md
 ├── concepts/           # ideas, patterns, frameworks
 │   └── _index.md
-├── domains/            # top-level topic areas
-│   └── _index.md
 ├── comparisons/        # side-by-side analyses
-├── questions/          # filed answers to user queries
-└── meta/               # dashboards, lint reports, conventions
+├── questions/          # filed answers and synthesis pages
+├── canvases/           # visual boards (.canvas files)
+├── meta/               # dashboards, lint reports, conventions
+└── domains/            # optional, mode-specific: top-level topic areas
+    └── _index.md
 ```
 
 Dot-prefixed folders (`.raw/`) are hidden in Obsidian's file explorer and graph view. Use this for source documents.
@@ -120,7 +122,7 @@ Steps:
 1. Determine the wiki mode. Read `references/modes.md` to show the 6 options and pick the best fit.
 2. Ask: "What is this vault for?" (one question, then proceed).
 3. Create full folder structure under `wiki/` based on the mode.
-4. Create domain pages + `_index.md` sub-indexes.
+4. Create `_index.md` sub-indexes for `entities/`, `concepts/`, `sources/`. If the chosen mode uses `domains/`, create it and its `_index.md` too.
 5. Create `wiki/index.md`, `wiki/log.md`, `wiki/hot.md`, `wiki/overview.md`.
 6. Create `_templates/` files for each note type.
 7. Apply visual customization. Read `references/css-snippets.md`. Create `.obsidian/snippets/vault-colors.css`.
@@ -146,7 +148,7 @@ Created: YYYY-MM-DD
 
 ## Conventions
 
-- All notes use YAML frontmatter: type, status, created, updated, tags (minimum)
+- All notes use YAML frontmatter: type, title, created, updated, tags, status (minimum). Full schema: `skills/wiki/references/frontmatter.md`
 - Wikilinks use [[Note Name]] format: filenames are unique, no paths needed
 - .raw/ contains source documents: never modify them
 - wiki/index.md is the master catalog: update on every ingest

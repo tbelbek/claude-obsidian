@@ -80,7 +80,7 @@ Callouts are blockquotes with a type keyword. They render as styled alert boxes.
 | `bug` |: | Known bugs |
 | `example` |: | Examples |
 | `quote` | `cite` | Quotations |
-| `contradiction` |: | Conflicting information (wiki convention) |
+| `contradiction` |: | Conflicting information (custom: requires `.obsidian/snippets/vault-colors.css` from `skills/wiki/references/css-snippets.md`; falls back to default callout styling if missing) |
 
 ---
 
