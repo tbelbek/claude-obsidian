@@ -26,16 +26,22 @@ Must not change:
 
 ## Command
 
-One shell command runs a single trial. Emits JSON to stdout.
+One shell command runs a single trial. Each trial averages N=3 headless runs to suppress variance. Emits one JSON line to stdout.
 
 ```bash
-bash eval/run_trial.sh claude-code-mistakes
+RUNS_PER_TRIAL=3 bash eval/run_trial_avg.sh claude-code-mistakes
 ```
 
 Expected stdout:
 
 ```json
-{"metric": 0.612, "components": {...}, "pages": N, "subdirs": [...]}
+{"metric": 0.612, "metric_std": 0.04, "runs": 3, "components": {...}, "components_std": {...}, "pages": N, "runs_json": [...]}
+```
+
+Single-run fallback (for debugging only, never loop decisions):
+
+```bash
+bash eval/run_trial.sh claude-code-mistakes
 ```
 
 ## Metric
@@ -43,8 +49,8 @@ Expected stdout:
 - **Name:** `metric` (composite from `eval/rubric.json`)
 - **Direction:** `max` (higher is better, range [0, 1])
 - **Extraction:** parse `metric` field from the single JSON line on stdout
-- **Baseline:** 0.566 (measured 2026-04-14 against the real obsidian-vault copy)
-- **Noise policy:** Headless Claude is non-deterministic. Before accepting a new best, rerun the winning prompt ONCE. If the rerun regresses > 0.03, discard.
+- **Baseline:** 0.7971 single-run, ~0.79 averaged (measured 2026-04-14 on branch `autoresearch/wiki-ingest-prompt-opt`, trial 1). Re-baseline at the start of every new run.
+- **Noise policy:** Headless Claude is non-deterministic. Single-run variance ~±0.1; N=3 averaging brings std into the ~0.02–0.05 range. A candidate is accepted only if `metric_mean` improves by more than `max(0.02, metric_std)` over the current baseline. If accepted, one additional averaged trial is run as a confirmation; accept only if it also clears the threshold.
 
 ## Secondary guards
 
@@ -57,10 +63,11 @@ A trial is rejected if any guard fails, regardless of metric:
 
 ## Budgets
 
-- **Per-trial wall-clock:** 300 s (hard kill at 600 s via `timeout` in runner)
-- **Total trials:** 20
-- **Total wall-clock:** 2 hours
-- **Stop after consecutive no-improvement trials:** 6
+- **Per-run wall-clock:** 300 s soft / 600 s hard (inherited by `run_trial.sh`)
+- **Per-trial wall-clock:** RUNS_PER_TRIAL × per-run (~15 min at N=3)
+- **Total trials:** 12 (was 20 — each trial now costs 3× single-run)
+- **Total wall-clock:** 3 hours
+- **Stop after consecutive no-improvement trials:** 4
 
 ## Hypotheses (priority order)
 
@@ -84,12 +91,12 @@ The baseline flagged three high-impact gaps. Hypotheses target those directly.
 ## Stopping criteria summary
 
 Stop when ANY of these hit:
-- 20 total trials
-- 2 hours wall-clock
-- 6 consecutive no-improvement trials
-- Metric reaches 0.85 (high-enough; diminishing returns above this point)
+- 12 total trials (each = 3 averaged runs)
+- 3 hours wall-clock
+- 4 consecutive no-improvement trials
+- Metric mean reaches 0.85 (high-enough; diminishing returns above this point)
 - User interrupts
 
 ## Cost note
 
-Each trial spawns a full headless Claude run with web search. Expect ~2–4 minutes and ~$0.50–$2 per trial. 20 trials ≈ 40 min–1 hr wall-clock, ~$10–$40 in API cost.
+Each trial spawns RUNS_PER_TRIAL (=3) headless Claude runs with web search. Expect ~5–15 minutes and ~$1.50–$6 per trial. 12 trials ≈ 1–3 hr wall-clock, ~$20–$70 in API cost.
