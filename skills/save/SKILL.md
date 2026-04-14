@@ -51,6 +51,7 @@ If the user specifies a type, use that. If not, pick the best fit. When in doubt
    - Type: [note type]
    - Location: wiki/[folder]/Note Title.md
    - From: conversation on [brief topic description]
+   - Key insight: [one sentence — what is new or why this is worth keeping]
    ```
 9. **Update** `wiki/hot.md` to reflect the new addition.
 10. **Confirm**: "Saved as [[Note Title]] in wiki/[folder]/."

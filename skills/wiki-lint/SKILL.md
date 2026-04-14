@@ -78,12 +78,12 @@ Enforce these during lint:
 
 | Element | Convention | Example |
 |---------|-----------|---------|
-| Filenames | Title Case with spaces | `Machine Learning.md` |
+| Filenames | Title Case with spaces, matches the page's `title` frontmatter exactly | `Machine Learning.md` (title: "Machine Learning") |
 | Folders | lowercase with dashes | `wiki/data-models/` |
 | Tags | lowercase, hierarchical | `#domain/architecture` |
-| Wikilinks | match filename exactly | `[[Machine Learning]]` |
+| Wikilinks | target the destination page's `title` field (which equals the filename sans `.md`) | `[[Machine Learning]]` |
 
-Filenames must be unique across the vault. Wikilinks work without paths only if filenames are unique.
+Filenames must equal the page `title` and must be unique across the vault. Wikilinks work without paths only when filenames are unique. Flag any page whose filename and `title` diverge.
 
 ---
 

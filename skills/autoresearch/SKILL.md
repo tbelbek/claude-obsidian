@@ -131,7 +131,7 @@ sources:
    - Sources found: N
    - Pages created: [[Page 1]], [[Page 2]], ...
    - Synthesis: [[Research: Topic]]
-   - Key finding: [one sentence]
+   - Key insight: [one sentence]
    ```
 3. Update `wiki/hot.md` with the research summary
 
