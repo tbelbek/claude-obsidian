@@ -33,11 +33,7 @@
         "llm-wiki",
         "canvas",
         "pkm"
-      ],
-      "commands": "./commands",
-      "agents": "./agents",
-      "skills": "./skills",
-      "hooks": "./hooks/hooks.json"
+      ]
     }
   ]
 }
