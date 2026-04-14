@@ -25,6 +25,12 @@ Parse recent entries: `grep "^## \[" wiki/log.md | head -10`
 
 ---
 
+## [2026-04-14] karpathy-autoresearch | wiki-ingest-prompt-opt | 0.7971 → 0.7935 over 5 trials
+- Synthesis: [[experiments/wiki-ingest-prompt-opt]]
+- Branch: `autoresearch/wiki-ingest-prompt-opt`
+- Kept: frontmatter rule (neutral_keep) — deterministically pins `frontmatter_completeness=1.0`
+- Key finding: metric variance (~±0.1) swamps single-trial hill-climbing; add multi-run averaging before next run
+
 ## [2026-04-08] save | claude-obsidian v1.4 Release Session
 - Type: session
 - Location: wiki/meta/claude-obsidian-v1.4-release-session.md
