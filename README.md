@@ -82,7 +82,7 @@ Plugin installation is a two-step process in Claude Code. First add the marketpl
 
 ```bash
 # Step 1: add the marketplace
-claude plugin marketplace add AgriciDaniel/claude-obsidian
+claude plugin marketplace add tbelbek/claude-obsidian
 
 # Step 2: install the plugin
 claude plugin install claude-obsidian@claude-obsidian-marketplace

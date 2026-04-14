@@ -1,30 +1,43 @@
 {
   "name": "claude-obsidian-marketplace",
   "owner": {
-    "name": "AgriciDaniel",
-    "url": "https://github.com/AgriciDaniel"
+    "name": "tbelbek",
+    "url": "https://github.com/tbelbek"
   },
   "metadata": {
-    "description": "claude-obsidian: Claude + Obsidian knowledge companion by AgriciDaniel",
-    "version": "1.4.2"
+    "description": "claude-obsidian: Claude + Obsidian knowledge companion (fork by tbelbek, original by AgriciDaniel)",
+    "version": "1.4.3"
   },
   "plugins": [
     {
       "name": "claude-obsidian",
       "source": {
         "source": "github",
-        "repo": "AgriciDaniel/claude-obsidian",
+        "repo": "tbelbek/claude-obsidian",
         "ref": "main"
       },
       "description": "Claude + Obsidian knowledge companion. Sets up a persistent, compounding wiki vault. Covers memory management, session notetaking, knowledge organization, and agent context across projects.",
-      "version": "1.4.2",
+      "version": "1.4.3",
       "author": {
         "name": "AgriciDaniel",
         "url": "https://github.com/AgriciDaniel"
       },
-      "homepage": "https://github.com/AgriciDaniel/claude-obsidian",
-      "repository": "https://github.com/AgriciDaniel/claude-obsidian",
-      "license": "MIT"
+      "homepage": "https://github.com/tbelbek/claude-obsidian",
+      "repository": "https://github.com/tbelbek/claude-obsidian",
+      "license": "MIT",
+      "keywords": [
+        "obsidian",
+        "knowledge-base",
+        "wiki",
+        "memory",
+        "llm-wiki",
+        "canvas",
+        "pkm"
+      ],
+      "commands": "./commands",
+      "agents": "./agents",
+      "skills": "./skills",
+      "hooks": "./hooks/hooks.json"
     }
   ]
 }

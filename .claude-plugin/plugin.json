@@ -7,8 +7,12 @@
     "url": "https://github.com/AgriciDaniel"
   },
   "license": "MIT",
-  "homepage": "https://github.com/AgriciDaniel/claude-obsidian",
-  "repository": "https://github.com/AgriciDaniel/claude-obsidian",
+  "homepage": "https://github.com/tbelbek/claude-obsidian",
+  "repository": "https://github.com/tbelbek/claude-obsidian",
+  "commands": "./commands",
+  "agents": "./agents",
+  "skills": "./skills",
+  "hooks": "./hooks/hooks.json",
   "keywords": [
     "obsidian",
     "knowledge-base",
