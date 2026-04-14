@@ -1,0 +1,21 @@
+{
+  "score_subdirs": ["concepts", "entities", "sources", "comparisons", "questions"],
+  "required_frontmatter": ["type", "title", "created", "updated", "tags"],
+  "min_citations_per_page": 2,
+  "min_words_per_page": 50,
+  "max_words_per_page": 800,
+  "entity_min_words": 80,
+  "entity_min_outlinks": 1,
+  "expected_entities": [],
+  "expected_concepts": [],
+  "weights": {
+    "entity_recall": 2.0,
+    "concept_recall": 2.0,
+    "entity_research_depth": 1.5,
+    "frontmatter_completeness": 1.0,
+    "citation_density": 1.5,
+    "orphan_rate": 1.0,
+    "dedup": 1.5,
+    "page_length_sanity": 0.5
+  }
+}
