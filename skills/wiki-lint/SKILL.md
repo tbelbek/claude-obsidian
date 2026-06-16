@@ -39,6 +39,38 @@ Work through these in order:
 8. **Stale index entries**. Items in `wiki/index.md` pointing to renamed or deleted pages.
 9. **Address validity** (DragonScale Mechanism 2). For every page that has an `address:` frontmatter field, validate the format. See the **Address Validation** section below.
 10. **Semantic tiling** (DragonScale Mechanism 3, opt-in). Flag candidate duplicate pages (across all scanned types, not just concepts) via embedding cosine similarity. See the **Semantic Tiling** section below.
+11. **Provenance / hallucination risk** (v1.11). Run `python3 scripts/verify.py apply` to stamp every knowledge page with a `provenance/{sourced,unsourced,log-derived}` tag (structural, no LLM). Pages whose claims trace to no source are also tagged `needs-review`. See the **Provenance Verification** section below.
+
+---
+
+## Provenance Verification (v1.11)
+
+`scripts/verify.py` is the structural, no-LLM tier of hallucination control: it
+classifies each `wiki/` knowledge page by whether its claims trace to a real
+source and writes a tag into the page's frontmatter (it never moves or deletes
+pages). Non-knowledge pages (`_index`, `index`, `log`, `hot`, `overview`,
+`Wiki Map`, `getting-started`, `lint-report*`, `wiki/meta/archive/*`,
+`wiki/_templates/*`) are skipped.
+
+```bash
+python3 scripts/verify.py report   # dry-run classification table
+python3 scripts/verify.py apply    # write provenance + needs-review tags
+python3 scripts/verify.py review   # paths needing the LLM faithfulness pass
+python3 scripts/verify.py stats     # counts per class
+```
+
+| Tag | Meaning | Risk |
+|-----|---------|------|
+| `provenance/sourced` | resolvable `.raw` link, a URL, or links a `wiki/sources` page | low |
+| `provenance/unsourced` | no traceable source at all (+ `needs-review`) | **high** |
+| `provenance/log-derived` | synthesized from a chat log (+ `needs-review`) | review |
+
+**`sourced` ≠ faithful.** A page can cite a source and still contain claims the
+source never made. The second tier is the **LLM faithfulness pass**: take
+`verify.py review`, and for each page read it against its actual source. Update
+the tag to `verified` (claims confirmed; drop `needs-review`) or add
+`contradicts-source`. `verify.py` deliberately stops at the structural signal —
+the semantic judgement is the agent's job.
 
 ---
 

@@ -2,6 +2,34 @@
 
 All notable changes to claude-obsidian. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [SemVer](https://semver.org/).
 
+## [1.11.0] - 2026-06-16 (provenance verification — hallucination control via tags)
+
+Adds the structural tier of hallucination control for the `wiki/` knowledge
+base. Knowledge pages are classified by whether their claims trace to a real
+source and tagged in frontmatter — no page is ever moved or deleted, and the
+expensive part (LLM faithfulness reading) is deliberately scoped to the small
+high-risk subset rather than the whole vault.
+
+### Added
+
+- **`scripts/verify.py`** — provenance / groundedness tagger for `wiki/` pages.
+  Classifies each knowledge page (skipping meta files, `lint-report*`,
+  `wiki/meta/archive/*`, and `_templates/`) as `provenance/sourced` (resolvable
+  `.raw` link / URL / links a `wiki/sources` page), `provenance/unsourced` (no
+  traceable source → also `needs-review`), or `provenance/log-derived`
+  (synthesized from a chat log → also `needs-review`), and writes those tags
+  into the page's frontmatter. Idempotent `add_tags` handles block-list, inline,
+  missing-tags, and missing-frontmatter forms. Subcommands: `report` (dry),
+  `apply`, `review` (emit the LLM-pass work-list), `stats`. Pure stdlib.
+- **`tests/test_verify.py`** — 16 hermetic tests, heaviest on the `add_tags`
+  frontmatter mutator (every YAML shape + idempotency) since it edits real
+  pages. Wired into `make test` (now 11 suites) + `make test-verify`.
+- **Provenance Verification** section in `skills/wiki-lint/SKILL.md` (lint check
+  #11): documents the two-tier model — cheap structural tagging via `verify.py`,
+  then a targeted LLM faithfulness pass over the `needs-review` set that upgrades
+  a page to `verified` or flags `contradicts-source`. `sourced ≠ faithful` is
+  called out explicitly.
+
 ## [1.10.1] - 2026-06-16 (ai-generated marks .raw docs → triage holds them for review)
 
 Corrects where the v1.10.0 `ai-generated` tag lives and what it does. The tag is
