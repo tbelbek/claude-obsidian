@@ -1,9 +1,9 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "agricidaniel-claude-obsidian",
+  "name": "tbelbek-claude-obsidian",
   "owner": {
-    "name": "AgriciDaniel",
-    "url": "https://github.com/AgriciDaniel"
+    "name": "Tughan Belbek",
+    "url": "https://github.com/tbelbek"
   },
   "metadata": {
     "description": "claude-obsidian: a self-organizing AI second brain for Obsidian + Claude Code by AgriciDaniel. A persistent, compounding wiki vault of plain Markdown you own, based on Karpathy's LLM Wiki pattern.",
