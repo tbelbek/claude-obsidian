@@ -8,7 +8,6 @@ created: <% tp.date.now("YYYY-MM-DD") %>
 updated: <% tp.date.now("YYYY-MM-DD") %>
 tags:
   - entity
-  - ai-generated
 status: seed
 related: []
 sources: []

@@ -2,6 +2,39 @@
 
 All notable changes to claude-obsidian. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [SemVer](https://semver.org/).
 
+## [1.10.1] - 2026-06-16 (ai-generated marks .raw docs → triage holds them for review)
+
+Corrects where the v1.10.0 `ai-generated` tag lives and what it does. The tag is
+about **provenance of `.raw/` source docs Claude authors**, feeding the Triage
+Gate — not about the `wiki/` output pages. Now anything Claude writes into `.raw/`
+is held for human sign-off before it can enter the wiki.
+
+### Changed
+
+- **`ai-generated` moved from `wiki/` templates to `.raw/` creation points.**
+  Reverted the tag from `_templates/*.md` (those are ingest *output* pages).
+  Instead the wiki-ingest **URL saver** and **image saver**, plus the **defuddle**
+  saver, now stamp `ai-generated` into the frontmatter of the `.raw/` doc they
+  create. The "Provenance rule" in `skills/wiki-ingest/SKILL.md` is rewritten
+  accordingly.
+- **Triage now defaults `ai-generated` docs to `pending` (decision `skip`).**
+  `scripts/triage.py` reads the `ai-generated` frontmatter tag (inline or block
+  form) and classifies precedence: explicit `triage:` override > filename log
+  pattern (`archive`) > `ai-generated` (`pending`/`skip`) > default (`ingest`).
+  Each ledger entry now carries `ai_generated: true|false`. Net effect:
+  Claude-authored `.raw/` content never auto-flows into the wiki — sign off with
+  `triage: ingest` in the doc's frontmatter to ingest it.
+
+### Added
+
+- `tests/test_triage.py` cases for the ai-generated → pending path, log-pattern
+  beating ai-generated, override beating ai-generated, and the `ai_generated`
+  flag being recorded (13 triage assertions, all hermetic).
+
+### Fixed
+
+- `.claude-plugin/plugin.json` + `marketplace.json` version 1.10.0 → 1.10.1.
+
 ## [1.10.0] - 2026-06-16 (.raw triage gate + ai-generated provenance)
 
 Adds a deterministic triage step in front of ingestion so auto-generated session

@@ -9,10 +9,13 @@ Read the source. Write the wiki. Cross-reference everything. A single source typ
 
 **Syntax standard**: Write all Obsidian Markdown using proper Obsidian Flavored Markdown. Wikilinks as `[[Note Name]]`, callouts as `> [!type] Title`, embeds as `![[file]]`, properties as YAML frontmatter. If the kepano/obsidian-skills plugin is installed, prefer its canonical obsidian-markdown skill for Obsidian syntax reference. Otherwise, follow the guidance in this skill.
 
-**Provenance rule**: Every wiki page this skill creates is AI-authored — its
-frontmatter `tags:` list MUST include `ai-generated`. This marks AI-written
-notes as distinct from hand-authored ones for later filtering/cleanup. The
-`_templates/*.md` already carry it; preserve it on every create.
+**Provenance rule**: Any document Claude writes **into `.raw/`** (a fetched
+article, a defuddled page, an image description, a saved research note) MUST
+include `ai-generated` in its frontmatter `tags:` list. This marks the doc as
+Claude-authored so the **Triage Gate** can hold it for review instead of letting
+it flow straight into the wiki — `ai-generated` files default to `pending`
+(decision `skip`) until a human signs off. (This rule is about `.raw/` source
+docs, not the `wiki/` pages ingest produces.)
 
 ---
 
@@ -133,24 +136,27 @@ python3 scripts/triage.py stats      # ingest / archive / skip counts
 python3 scripts/triage.py ingestable # one path per line, decision == ingest
 ```
 
-`triage.py` classifies every `.raw/` file by filename and records the verdict
-in `.raw/.manifest.json` under a top-level **`triage`** key — a logical-tag
-ledger. Source files stay immutable (the tag lives in the manifest, never
-written into the source). Tag taxonomy:
+`triage.py` classifies every `.raw/` file and records the verdict in
+`.raw/.manifest.json` under a top-level **`triage`** key — a logical-tag ledger
+(each entry also carries `ai_generated: true|false`). Source files stay immutable
+(the verdict lives in the manifest, never written into the source). Classification
+precedence, highest first:
 
-| Tag | Matches | `decision` | What ingest does |
-|-----|---------|-----------|------------------|
-| `triage/reference` | default (articles, project notes) | `ingest` | Process normally |
-| `triage/log` | `checkpoint-*`, `conversation-review-*` | `archive` | **Skip** — do not ingest, do not add to `sources` |
-| `triage/pending` | manual `triage: skip` override | `skip` | Leave for a human call |
+| Precedence | Tag | Matches | `decision` | What ingest does |
+|-----------|-----|---------|-----------|------------------|
+| 1 (override) | per override | frontmatter `triage: …` | as stated | Honors the explicit human call |
+| 2 | `triage/log` | `checkpoint-*`, `conversation-review-*` | `archive` | **Skip** — never ingest, never add to `sources` |
+| 3 | `triage/pending` | `ai-generated` frontmatter tag | `skip` | **Hold for review** — Claude authored it; awaits human sign-off |
+| 4 (default) | `triage/reference` | human-dropped articles / project notes | `ingest` | Process normally |
 
 **Gate rules:**
 1. Ingest **only** files where `decision == "ingest"` (use `triage.py ingestable`).
 2. **Never** record an `archive`/`skip` file in the manifest `sources` map — that
-   map means "ingested", and a logged file there would suppress it from a future
+   map means "ingested", and a held file there would suppress it from a future
    intentional pass. The `triage` ledger is the only place their state lives.
-3. **Manual override:** a source file may carry `triage: ingest|archive|skip` in
-   its own frontmatter; it wins over the filename rule (read-only to the script).
+3. **`ai-generated` ⇒ pending:** anything Claude wrote into `.raw/` is held for
+   review, so AI-authored content never auto-flows into the wiki. To ingest one,
+   sign off by adding `triage: ingest` to its frontmatter (override wins).
 4. Run `triage.py` again after dropping new sources — it is idempotent.
 
 ---
@@ -164,11 +170,14 @@ Steps:
 1. **Fetch** the page using WebFetch.
 2. **Clean** (optional): if `defuddle` is available (`which defuddle 2>/dev/null`), run `defuddle [url]` to strip ads, nav, and clutter. Typically saves 40-60% tokens. Fall back to raw WebFetch output if not installed.
 3. **Derive slug** from the URL path (last segment, lowercased, spaces→hyphens, strip query strings).
-4. **Save** to `.raw/articles/[slug]-[YYYY-MM-DD].md` with a frontmatter header:
+4. **Save** to `.raw/articles/[slug]-[YYYY-MM-DD].md` with a frontmatter header (Claude
+   authored this `.raw/` doc, so it carries `ai-generated` per the Provenance rule):
    ```markdown
    ---
    source_url: [url]
    fetched: [YYYY-MM-DD]
+   tags:
+     - ai-generated
    ---
    ```
 5. Proceed with **Single Source Ingest** starting at step 2 (file is now in `.raw/`).
@@ -183,12 +192,15 @@ Steps:
 
 1. **Read** the image file using the Read tool. Claude can process images natively.
 2. **Describe** the image contents: extract all text (OCR), identify key concepts, entities, diagrams, and data visible in the image.
-3. **Save** the description to `.raw/images/[slug]-[YYYY-MM-DD].md`:
+3. **Save** the description to `.raw/images/[slug]-[YYYY-MM-DD].md` (Claude-authored
+   `.raw/` doc → carries `ai-generated` per the Provenance rule):
    ```markdown
    ---
    source_type: image
    original_file: [original path]
    fetched: YYYY-MM-DD
+   tags:
+     - ai-generated
    ---
    # Image: [slug]
 

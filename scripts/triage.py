@@ -14,13 +14,21 @@ It classifies each .raw/ file by FILENAME pattern and records the verdict in
 Source files under .raw/ stay immutable (the skill's contract): the triage tag
 lives in the manifest, never written into the source file.
 
-Tag taxonomy (the "track via tags" structure):
-  triage/log        → session log        → decision: archive (never ingest)
-  triage/reference  → reference/project  → decision: ingest
-  triage/pending    → unresolved         → decision: skip (needs human call)
+Classification precedence (highest first):
+  1. explicit `triage:` frontmatter override (ingest|archive|skip)
+  2. filename log pattern (checkpoint-*, conversation-review-*) → archive
+  3. `ai-generated` frontmatter tag → pending/skip (Claude authored it; awaits
+     human sign-off before it can enter the wiki)
+  4. default → reference → ingest (human-dropped source)
 
-Manual override: add `triage: ingest|archive|skip` to a source file's own YAML
-frontmatter and it wins over the filename rule (read-only; the script never
+Tag taxonomy (the "track via tags" structure):
+  triage/log        → session log              → decision: archive (never ingest)
+  triage/pending    → ai-generated, unreviewed → decision: skip (needs human call)
+  triage/reference  → human reference/project  → decision: ingest
+
+Every entry also carries `ai_generated: true|false`, read from the `tags:` list.
+Manual override: add `triage: ingest|archive|skip` to a file's own YAML
+frontmatter and it wins over everything above (read-only; the script never
 writes into source files).
 
 CLI:
@@ -53,6 +61,7 @@ SKIP_NAMES = {"README.md", "Dashboard.md", ".gitkeep"}
 
 CLASS_TAG = {"log": "triage/log", "reference": "triage/reference", "pending": "triage/pending"}
 CLASS_DECISION = {"log": "archive", "reference": "ingest", "pending": "skip"}
+DECISION_CLASS = {"ingest": "reference", "archive": "log", "skip": "pending"}
 VALID_DECISIONS = {"ingest", "archive", "skip"}
 
 
@@ -65,8 +74,8 @@ def find_root(start: Path) -> Path | None:
     return None
 
 
-def frontmatter_override(path: Path) -> str | None:
-    """Return a `triage:` value from the file's YAML frontmatter, if valid."""
+def _frontmatter_text(path: Path) -> str | None:
+    """Return the inner YAML frontmatter block, or None if absent."""
     try:
         text = path.read_text(encoding="utf-8", errors="replace")
     except OSError:
@@ -74,14 +83,46 @@ def frontmatter_override(path: Path) -> str | None:
     if not text.startswith("---"):
         return None
     end = text.find("\n---", 3)
-    if end == -1:
+    return text[3:end] if end != -1 else None
+
+
+def frontmatter_override(path: Path) -> str | None:
+    """Return a `triage:` value from the file's YAML frontmatter, if valid."""
+    fm = _frontmatter_text(path)
+    if fm is None:
         return None
-    for line in text[3:end].splitlines():
+    for line in fm.splitlines():
         m = re.match(r"\s*triage\s*:\s*(\w+)\s*$", line)
         if m:
             val = m.group(1).lower()
             return val if val in VALID_DECISIONS else None
     return None
+
+
+def has_ai_generated(path: Path) -> bool:
+    """True if the frontmatter `tags:` list contains `ai-generated`.
+
+    Handles both inline (`tags: [ai-generated, x]`) and block list forms.
+    """
+    fm = _frontmatter_text(path)
+    if fm is None:
+        return False
+    inline = re.search(r"^tags:\s*\[(.*?)\]", fm, re.MULTILINE)
+    if inline:
+        return "ai-generated" in [t.strip().strip("\"'") for t in inline.group(1).split(",")]
+    in_tags = False
+    for line in fm.splitlines():
+        if re.match(r"^tags:\s*$", line):
+            in_tags = True
+            continue
+        if in_tags:
+            item = re.match(r"\s+-\s*(.+?)\s*$", line)
+            if item:
+                if item.group(1).strip("\"'") == "ai-generated":
+                    return True
+            elif line.strip() and not line.startswith((" ", "\t")):
+                break  # next top-level key ends the tags block
+    return False
 
 
 def classify_filename(name: str) -> str:
@@ -93,15 +134,22 @@ def classify_filename(name: str) -> str:
 
 
 def classify_file(path: Path) -> dict:
-    """Classify one source file. Frontmatter `triage:` override wins."""
-    cls = classify_filename(path.name)
-    decision = CLASS_DECISION[cls]
-    by = "pattern" if cls == "log" else "default"
+    """Classify one source file.
+
+    Precedence: explicit `triage:` frontmatter override > filename log pattern >
+    `ai-generated` tag (→ pending, awaits human sign-off) > default reference.
+    """
+    ai = has_ai_generated(path)
     override = frontmatter_override(path)
-    if override and override != decision:
-        decision = override
-        by = "override"
-    return {"class": cls, "tag": CLASS_TAG[cls], "decision": decision, "by": by}
+    if override:
+        decision, cls, by = override, DECISION_CLASS[override], "override"
+    elif classify_filename(path.name) == "log":
+        decision, cls, by = "archive", "log", "pattern"
+    elif ai:
+        decision, cls, by = "skip", "pending", "ai-generated"
+    else:
+        decision, cls, by = "ingest", "reference", "default"
+    return {"class": cls, "tag": CLASS_TAG[cls], "decision": decision, "by": by, "ai_generated": ai}
 
 
 def iter_sources(root: Path):

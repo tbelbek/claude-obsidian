@@ -38,10 +38,12 @@ defuddle https://example.com/article > .raw/articles/article-slug-$(date +%Y-%m-
 ```
 
 ### Add frontmatter header after saving
-After running defuddle, prepend the source URL and fetch date:
+After running defuddle, prepend the source URL and fetch date. Claude authored this
+`.raw/` doc, so tag it `ai-generated` (the Triage Gate holds ai-generated docs for
+review — see `skills/wiki-ingest/SKILL.md`):
 ```bash
 SLUG="article-slug-$(date +%Y-%m-%d)"
-{ echo "---"; echo "source_url: https://example.com/article"; echo "fetched: $(date +%Y-%m-%d)"; echo "---"; echo ""; defuddle https://example.com/article; } > .raw/articles/$SLUG.md
+{ echo "---"; echo "source_url: https://example.com/article"; echo "fetched: $(date +%Y-%m-%d)"; echo "tags: [ai-generated]"; echo "---"; echo ""; defuddle https://example.com/article; } > .raw/articles/$SLUG.md
 ```
 
 ### Clean a local HTML file

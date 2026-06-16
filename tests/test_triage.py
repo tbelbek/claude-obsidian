@@ -129,6 +129,43 @@ def test_ingestable_filter():
     assert_eq("only the article is ingestable", [".raw/blog/Post.md"], ingestable)
 
 
+def test_ai_generated_defaults_pending():
+    root = make_vault({
+        ".raw/articles/block.md": "---\ntags:\n  - source\n  - ai-generated\n---\nbody",
+        ".raw/articles/inline.md": "---\ntags: [ai-generated, source]\n---\nbody",
+    })
+    block = triage.classify_file(root / ".raw/articles/block.md")
+    inline = triage.classify_file(root / ".raw/articles/inline.md")
+    for label, v in (("block", block), ("inline", inline)):
+        assert_eq(f"{label} ai-gen → skip", "skip", v["decision"])
+        assert_eq(f"{label} ai-gen class", "pending", v["class"])
+        assert_eq(f"{label} ai-gen tag", "triage/pending", v["tag"])
+        assert_eq(f"{label} ai-gen by", "ai-generated", v["by"])
+        assert_true(f"{label} ai_generated flag", v["ai_generated"] is True)
+
+
+def test_log_filename_beats_ai_generated():
+    # An ai-generated session log is still a log → archive, not pending.
+    root = make_vault({".raw/inbox/conversation-review-x.md": "---\ntags:\n  - ai-generated\n---\nb"})
+    v = triage.classify_file(root / ".raw/inbox/conversation-review-x.md")
+    assert_eq("log wins over ai-generated", "archive", v["decision"])
+    assert_true("ai_generated still recorded", v["ai_generated"] is True)
+
+
+def test_override_beats_ai_generated():
+    root = make_vault({".raw/articles/a.md": "---\ntriage: ingest\ntags:\n  - ai-generated\n---\nb"})
+    v = triage.classify_file(root / ".raw/articles/a.md")
+    assert_eq("override beats ai-generated pending", "ingest", v["decision"])
+    assert_eq("override by", "override", v["by"])
+
+
+def test_non_ai_human_source_ingests():
+    root = make_vault({".raw/articles/human.md": "---\ntags:\n  - source\n---\nb"})
+    v = triage.classify_file(root / ".raw/articles/human.md")
+    assert_eq("human (no ai-generated) → ingest", "ingest", v["decision"])
+    assert_true("ai_generated false", v["ai_generated"] is False)
+
+
 def test_find_root_walks_up():
     root = make_vault({".raw/blog/Post.md": "y"})
     deep = root / ".raw" / "blog"
