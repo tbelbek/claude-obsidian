@@ -34,6 +34,9 @@ writes into source files).
 CLI:
   triage.py report           # classify, print table, NO write (default)
   triage.py apply            # classify and write the `triage` map to manifest
+  triage.py tag              # ALSO write the triage/<class> tag into each file's
+                             #   own frontmatter (path-preserving: never moves,
+                             #   renames, or deletes — one tag per file) + manifest
   triage.py ingestable       # print one path per line where decision == ingest
   triage.py stats            # print counts per class/decision
 
@@ -84,6 +87,85 @@ def _frontmatter_text(path: Path) -> str | None:
         return None
     end = text.find("\n---", 3)
     return text[3:end] if end != -1 else None
+
+
+def _split_frontmatter(text: str):
+    """Return (fm_body, rest) where rest begins at the closing '---'; fm_body is
+    None if there is no frontmatter."""
+    if not text.startswith("---"):
+        return None, text
+    end = text.find("\n---", 3)
+    if end == -1:
+        return None, text
+    return text[3:end], text[end:]
+
+
+def add_tags(text: str, new_tags: list) -> str:
+    """Add each tag to the frontmatter `tags:` list if absent. Idempotent.
+
+    Handles block-list, inline (`tags: [a, b]`), missing-tags, and
+    missing-frontmatter forms. Never moves/renames the file or edits the body —
+    the only mutation is appending a tag to frontmatter.
+
+    # ponytail: kept in sync with scripts/verify.py:add_tags by design — the repo
+    # convention is self-contained, hermetically-testable scripts (no cross-imports),
+    # so this mutator is intentionally duplicated rather than shared.
+    """
+    new_tags = [t for t in new_tags if t]
+    if not new_tags:
+        return text
+    fm, rest = _split_frontmatter(text)
+    if fm is None:
+        block = "tags:\n" + "".join(f"  - {t}\n" for t in new_tags)
+        return "---\n" + block + "---\n\n" + text
+    m = re.search(r"^tags:\s*\[(.*?)\]\s*$", fm, re.MULTILINE)
+    if m:
+        existing = [t.strip().strip("\"'") for t in m.group(1).split(",") if t.strip()]
+        merged = existing + [t for t in new_tags if t not in existing]
+        if merged == existing:
+            return text
+        line = "tags: [" + ", ".join(merged) + "]"
+        return "---" + fm[: m.start()] + line + fm[m.end():] + rest
+    lines = fm.splitlines()
+    out, i, handled = [], 0, False
+    while i < len(lines):
+        out.append(lines[i])
+        if re.match(r"^tags:\s*$", lines[i]):
+            i += 1
+            present = set()
+            while i < len(lines) and re.match(r"^\s+-\s*(.+)$", lines[i]):
+                present.add(re.match(r"^\s+-\s*(.+?)\s*$", lines[i]).group(1).strip("\"'"))
+                out.append(lines[i])
+                i += 1
+            for t in new_tags:
+                if t not in present:
+                    out.append(f"  - {t}")
+            handled = True
+            continue
+        i += 1
+    if not handled:
+        out = ["tags:"] + [f"  - {t}" for t in new_tags] + out
+    return "---" + "\n".join(out) + rest
+
+
+def tag_all(root: Path) -> dict:
+    """Write each source file's `triage/<class>` tag into its own frontmatter.
+
+    Path-preserving: never moves, renames, or deletes — the only change is one
+    frontmatter tag per file. Also refreshes the manifest `triage` ledger.
+    """
+    files = build_triage(root)
+    for rel, v in files.items():
+        p = root / rel
+        try:
+            text = p.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        updated = add_tags(text, [v["tag"]])
+        if updated != text:
+            p.write_text(updated, encoding="utf-8")
+    apply_triage(root)
+    return files
 
 
 def frontmatter_override(path: Path) -> str | None:
@@ -220,7 +302,12 @@ def main(argv) -> int:
                 print(rel)
         return 0
 
-    files = apply_triage(root) if cmd == "apply" else build_triage(root)
+    if cmd == "tag":
+        files = tag_all(root)
+    elif cmd == "apply":
+        files = apply_triage(root)
+    else:
+        files = build_triage(root)
 
     if cmd == "stats":
         counts = _counts(files)
@@ -234,7 +321,10 @@ def main(argv) -> int:
         print(f"{v['decision']:<8} {v['tag']:<18} {v['by']:<9} {rel}")
     counts = _counts(files)
     summary = ", ".join(f"{k}={counts.get(k, 0)}" for k in ("ingest", "archive", "skip"))
-    where = " (written to manifest)" if cmd == "apply" else " (dry run; use `apply` to persist)"
+    where = {
+        "tag": " (triage/<class> tag written into each file's frontmatter + manifest)",
+        "apply": " (written to manifest)",
+    }.get(cmd, " (dry run; use `apply` for manifest, `tag` for frontmatter)")
     print(f"\n{len(files)} files: {summary}{where}", file=sys.stderr)
     return 0
 

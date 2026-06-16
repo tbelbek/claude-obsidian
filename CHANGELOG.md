@@ -2,6 +2,33 @@
 
 All notable changes to claude-obsidian. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [SemVer](https://semver.org/).
 
+## [1.12.0] - 2026-06-16 (triage `tag` mode — visible, path-preserving .raw frontmatter tags)
+
+Lets triage state live as a **visible Obsidian frontmatter tag** on each `.raw/`
+file, not just in the invisible manifest ledger — so a messy inbox can be sorted
+and filtered in Obsidian. Strictly path-preserving: one tag added, nothing moved,
+renamed, deleted, or body-edited.
+
+### Added
+
+- **`triage.py tag`** subcommand — writes `triage/<class>` (`triage/log`,
+  `triage/reference`, `triage/pending`) into each source file's own frontmatter
+  via a ported, hermetically-tested `add_tags` (block-list / inline / missing-tags
+  / no-frontmatter forms, idempotent), and still refreshes the manifest `triage`
+  ledger. `apply` remains the manifest-only path.
+- `tests/test_triage.py`: +4 cases — `add_tags` shapes + idempotency, `tag`
+  writes frontmatter **and** manifest, and a path-preserving invariant (no file
+  added/removed/renamed after tagging).
+
+### Changed
+
+- **`.raw/` immutability rule refined** in `skills/wiki-ingest/SKILL.md`: paths
+  are never changed (no move/rename/delete) and bodies are never edited — with one
+  narrow, opt-in exception: `triage.py tag` may add a single `triage/<class>`
+  frontmatter tag for Obsidian visibility. Triage Gate docs updated with `apply`
+  (invisible ledger) vs `tag` (visible frontmatter) guidance.
+- version 1.11.0 → 1.12.0.
+
 ## [1.11.0] - 2026-06-16 (provenance verification — hallucination control via tags)
 
 Adds the structural tier of hallucination control for the `wiki/` knowledge

@@ -166,6 +166,47 @@ def test_non_ai_human_source_ingests():
     assert_true("ai_generated false", v["ai_generated"] is False)
 
 
+def test_add_tags_block_and_idempotent():
+    text = "---\ntype: source\ntags:\n  - source\n---\n\n# Body\n"
+    out = triage.add_tags(text, ["triage/reference"])
+    assert_true("block: keeps existing", "  - source" in out)
+    assert_true("block: adds triage tag", "  - triage/reference" in out)
+    assert_true("block: body intact", out.endswith("# Body\n"))
+    assert_eq("idempotent", out, triage.add_tags(out, ["triage/reference"]))
+
+
+def test_add_tags_inline_and_no_frontmatter():
+    inline = triage.add_tags("---\ntags: [a]\n---\nx", ["triage/log"])
+    assert_true("inline merged", "tags: [a, triage/log]" in inline)
+    nofm = triage.add_tags("just a log line\n", ["triage/log"])
+    assert_true("no-fm prepends", nofm.startswith("---\ntags:\n  - triage/log\n---\n"))
+    assert_true("no-fm body kept", nofm.endswith("just a log line\n"))
+
+
+def test_tag_writes_frontmatter_and_manifest():
+    root = make_vault({
+        ".raw/inbox/checkpoint-1.md": "log body",
+        ".raw/blog/Post.md": "---\ntags:\n  - article\n---\nreal content",
+    })
+    triage.tag_all(root)
+    cp = (root / ".raw/inbox/checkpoint-1.md").read_text(encoding="utf-8")
+    post = (root / ".raw/blog/Post.md").read_text(encoding="utf-8")
+    assert_true("log file tagged triage/log", "triage/log" in cp)
+    assert_true("article tagged triage/reference", "triage/reference" in post)
+    assert_true("article keeps original tag", "- article" in post)
+    import json as _json
+    man = _json.loads((root / ".raw/.manifest.json").read_text(encoding="utf-8"))
+    assert_true("manifest ledger also written", "triage" in man)
+
+
+def test_tag_is_path_preserving():
+    root = make_vault({".raw/inbox/checkpoint-1.md": "log body"})
+    before = sorted(p.relative_to(root).as_posix() for p in (root / ".raw").rglob("*.md"))
+    triage.tag_all(root)
+    after = sorted(p.relative_to(root).as_posix() for p in (root / ".raw").rglob("*.md"))
+    assert_eq("no file moved/renamed/deleted", before, after)
+
+
 def test_find_root_walks_up():
     root = make_vault({".raw/blog/Post.md": "y"})
     deep = root / ".raw" / "blog"

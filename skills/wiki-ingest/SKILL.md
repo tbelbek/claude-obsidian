@@ -131,10 +131,16 @@ into the knowledge graph. Blindly ingesting an inbox full of `checkpoint-*` /
 it pollutes entity/concept pages and the hot cache with low-signal content.
 
 ```bash
-python3 scripts/triage.py apply      # classify .raw/, write the `triage` ledger
+python3 scripts/triage.py apply      # classify .raw/, write the `triage` ledger (manifest only)
+python3 scripts/triage.py tag        # ALSO stamp triage/<class> into each file's frontmatter
 python3 scripts/triage.py stats      # ingest / archive / skip counts
 python3 scripts/triage.py ingestable # one path per line, decision == ingest
 ```
+
+Use `apply` for an invisible manifest-only ledger, or `tag` when you want the
+triage state **visible and filterable in Obsidian** as a frontmatter tag. `tag`
+is path-preserving — it adds one `triage/<class>` tag and nothing else; it never
+moves, renames, or deletes a file.
 
 `triage.py` classifies every `.raw/` file and records the verdict in
 `.raw/.manifest.json` under a top-level **`triage`** key — a logical-tag ledger
@@ -298,7 +304,7 @@ Do not silently overwrite old claims. Flag and let the user decide.
 
 ## What Not to Do
 
-- **Source files under `.raw/` are immutable.** Do not modify the files that users drop there (articles, transcripts, images). The `.raw/.manifest.json` delta tracker and its `address_map` (DragonScale Mechanism 2) are the only files under `.raw/` that `wiki-ingest` itself maintains. Treat every other file under `.raw/` as read-only source content.
+- **Source files under `.raw/` are immutable — content and path.** Do not edit the body of files users drop there (articles, transcripts, images), and never move, rename, or delete them. The `.raw/.manifest.json` delta tracker and its `address_map` (DragonScale Mechanism 2) are maintained by `wiki-ingest`. **One narrow, opt-in exception:** `triage.py tag` may add a single `triage/<class>` tag to a file's frontmatter (and only that) so the triage state is visible/filterable in Obsidian — still no path change, no rename, no delete, no body edit. Everything else under `.raw/` is read-only source content.
 - Do not create duplicate pages. Always check the index and search before creating.
 - Do not skip the log entry. Every ingest must be recorded.
 - Do not skip the hot cache update. It is what keeps future sessions fast.
