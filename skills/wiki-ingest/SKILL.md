@@ -9,6 +9,11 @@ Read the source. Write the wiki. Cross-reference everything. A single source typ
 
 **Syntax standard**: Write all Obsidian Markdown using proper Obsidian Flavored Markdown. Wikilinks as `[[Note Name]]`, callouts as `> [!type] Title`, embeds as `![[file]]`, properties as YAML frontmatter. If the kepano/obsidian-skills plugin is installed, prefer its canonical obsidian-markdown skill for Obsidian syntax reference. Otherwise, follow the guidance in this skill.
 
+**Provenance rule**: Every wiki page this skill creates is AI-authored — its
+frontmatter `tags:` list MUST include `ai-generated`. This marks AI-written
+notes as distinct from hand-authored ones for later filtering/cleanup. The
+`_templates/*.md` already carry it; preserve it on every create.
+
 ---
 
 ## Transport (v1.7+)
@@ -114,6 +119,42 @@ Skip delta checking if the user says "force ingest" or "re-ingest".
 
 ---
 
+## Triage Gate
+
+Before a **batch ingest** (and optionally before a single ingest), run the
+deterministic triage classifier so auto-generated session logs never get fanned
+into the knowledge graph. Blindly ingesting an inbox full of `checkpoint-*` /
+`conversation-review-*` logs is the classic "bulk-dump into RAG" failure mode:
+it pollutes entity/concept pages and the hot cache with low-signal content.
+
+```bash
+python3 scripts/triage.py apply      # classify .raw/, write the `triage` ledger
+python3 scripts/triage.py stats      # ingest / archive / skip counts
+python3 scripts/triage.py ingestable # one path per line, decision == ingest
+```
+
+`triage.py` classifies every `.raw/` file by filename and records the verdict
+in `.raw/.manifest.json` under a top-level **`triage`** key — a logical-tag
+ledger. Source files stay immutable (the tag lives in the manifest, never
+written into the source). Tag taxonomy:
+
+| Tag | Matches | `decision` | What ingest does |
+|-----|---------|-----------|------------------|
+| `triage/reference` | default (articles, project notes) | `ingest` | Process normally |
+| `triage/log` | `checkpoint-*`, `conversation-review-*` | `archive` | **Skip** — do not ingest, do not add to `sources` |
+| `triage/pending` | manual `triage: skip` override | `skip` | Leave for a human call |
+
+**Gate rules:**
+1. Ingest **only** files where `decision == "ingest"` (use `triage.py ingestable`).
+2. **Never** record an `archive`/`skip` file in the manifest `sources` map — that
+   map means "ingested", and a logged file there would suppress it from a future
+   intentional pass. The `triage` ledger is the only place their state lives.
+3. **Manual override:** a source file may carry `triage: ingest|archive|skip` in
+   its own frontmatter; it wins over the filename rule (read-only to the script).
+4. Run `triage.py` again after dropping new sources — it is idempotent.
+
+---
+
 ## URL Ingestion
 
 Trigger: user passes a URL starting with `https://`.
@@ -194,7 +235,9 @@ Trigger: user drops multiple files or says "ingest all of these."
 
 Steps:
 
-1. List all files to process. Confirm with user before starting.
+1. **Run the Triage Gate first** (`python3 scripts/triage.py apply`). Take the
+   `ingestable` set as your work-list; report the archive/skip counts so the
+   user sees what's being held back. Confirm with user before starting.
 2. Process each source following the single ingest flow. Defer cross-referencing between sources until step 3.
 3. After all sources: do a cross-reference pass. Look for connections between the newly ingested sources.
 4. Update index, hot cache, and log once at the end (not per-source).

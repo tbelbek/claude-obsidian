@@ -2,6 +2,42 @@
 
 All notable changes to claude-obsidian. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [SemVer](https://semver.org/).
 
+## [1.10.0] - 2026-06-16 (.raw triage gate + ai-generated provenance)
+
+Adds a deterministic triage step in front of ingestion so auto-generated session
+logs (`checkpoint-*`, `conversation-review-*`) in a busy `.raw/` inbox are never
+fanned into the knowledge graph — the classic "bulk-dump into RAG" failure mode
+that pollutes entity/concept pages and the hot cache. Backed by web research on
+PKM note-classification (PARA Archive, note-type/maturity models, LLM document
+triage). Source files stay immutable: triage verdicts live as logical tags in the
+manifest, not in the files.
+
+### Added
+
+- **`scripts/triage.py`** — classifies every `.raw/` file by filename pattern and
+  records the verdict in `.raw/.manifest.json` under a new top-level `triage` key
+  (`{class, tag, decision, by}` per source path). Tag taxonomy: `triage/reference`
+  → `ingest`, `triage/log` → `archive`, `triage/pending` → `skip`. Subcommands:
+  `report` (dry, default), `apply` (persist), `ingestable` (paths to ingest),
+  `stats`. A source file may carry a `triage: ingest|archive|skip` frontmatter
+  override (read-only to the script). Pure stdlib; idempotent.
+- **`tests/test_triage.py`** — hermetic coverage of classification, frontmatter
+  override, the manifest-`triage`-not-`sources` invariant, idempotency, the
+  ingestable filter, and root discovery. Wired into `make test` (now 10 suites)
+  + `make test-triage`.
+- **Triage Gate** section in `skills/wiki-ingest/SKILL.md`: batch ingest now runs
+  `triage.py apply` first and ingests only `decision == "ingest"`; archived/skipped
+  files are **never** written to the `sources` map (which means "ingested"), so a
+  log file can't be silently suppressed from a future intentional pass.
+
+### Changed
+
+- **`ai-generated` provenance tag.** Every wiki page the plugin creates is now
+  marked AI-authored: `ai-generated` added to all `_templates/*.md` `tags:` lists
+  and mandated by a new "Provenance rule" in `skills/wiki-ingest/SKILL.md`, so
+  AI-written notes are distinguishable from hand-authored ones for later filtering.
+- `.claude-plugin/plugin.json` + `marketplace.json` version 1.9.2 → 1.10.0.
+
 ## [1.9.2] - 2026-05-27 (prompt-cache hardening + path-handling robustness)
 
 Ports Anthropic prompt-caching best practices into the **one** place the plugin calls the Anthropic API directly: tier-1 contextual-prefix generation in `scripts/contextual-prefix.py`. Verified by full-repo sweep that `cache_control` and the Anthropic API surface exist nowhere else (incl. `claude-canvas/`). No change to retrieval output — API payload shape + observability only.
